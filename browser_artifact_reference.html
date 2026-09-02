@@ -1,0 +1,393 @@
+<div id="soil-tracker-root"></div>
+<style>
+  #soil-tracker-root {
+    --soil-dark: #2B2118;
+    --soil-mid: #4A3728;
+    --soil-light: #F5EFE4;
+    --ochre: #C4872B;
+    --sage: #5F7A5A;
+    --clay: #A8532E;
+    --ink: #2B2118;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    color: var(--ink);
+    background: var(--soil-light);
+    border-radius: 14px;
+    padding: 0;
+    max-width: 720px;
+    margin: 0 auto;
+    overflow: hidden;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
+  .st-strata {
+    position: relative;
+    height: 108px;
+    background: linear-gradient(to bottom, #8A6A45 0%, #6B4E32 45%, #4A3728 100%);
+    overflow: hidden;
+  }
+  .st-strata-label {
+    position: absolute;
+    left: 20px;
+    color: #F5EFE4;
+    font-family: Georgia, 'Times New Roman', serif;
+  }
+  .st-strata-title {
+    top: 14px;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+  .st-strata-sub {
+    top: 42px;
+    font-size: 12.5px;
+    opacity: 0.85;
+    font-family: -apple-system, sans-serif;
+  }
+  .st-depth-mark {
+    position: absolute;
+    right: 20px;
+    color: #F5EFE4;
+    font-size: 11px;
+    font-family: -apple-system, sans-serif;
+    opacity: 0.75;
+    border-top: 1px dashed rgba(245,239,228,0.4);
+    padding-top: 3px;
+  }
+  .st-depth-mark.d5 { top: 46px; width: 90px; }
+  .st-depth-mark.d10 { top: 78px; width: 90px; }
+
+  .st-body { padding: 20px 22px 22px; }
+
+  .st-status {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 13px 16px;
+    border-radius: 10px;
+    margin-bottom: 18px;
+    font-size: 14px;
+  }
+  .st-status.wait { background: #EFE6D3; color: #5C4A2E; }
+  .st-status.close { background: #F1E3D0; color: var(--clay); }
+  .st-status.ready { background: #E4EBE1; color: var(--sage); }
+  .st-status-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  .st-status.wait .st-status-dot { background: #B99A63; }
+  .st-status.close .st-status-dot { background: var(--clay); }
+  .st-status.ready .st-status-dot { background: var(--sage); }
+  .st-status b { font-weight: 700; }
+
+  .st-form {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+  }
+  .st-field { display: flex; flex-direction: column; gap: 4px; }
+  .st-field label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; color: var(--soil-mid); }
+  .st-field input {
+    border: 1px solid #D8CBB0;
+    background: #fff;
+    border-radius: 7px;
+    padding: 8px 10px;
+    font-size: 14px;
+    width: 108px;
+    color: var(--ink);
+  }
+  .st-field input[type="date"] { width: 148px; }
+  .st-add-btn {
+    background: var(--soil-dark);
+    color: #F5EFE4;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 16px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  .st-add-btn:hover { background: var(--soil-mid); }
+  .st-error { color: var(--clay); font-size: 12.5px; margin: -10px 0 14px; }
+
+  .st-chart-wrap { margin-bottom: 18px; }
+  .st-chart-wrap svg { width: 100%; height: auto; display: block; }
+  .st-legend { display: flex; gap: 16px; font-size: 12px; color: var(--soil-mid); margin-top: 6px; }
+  .st-legend span { display: inline-flex; align-items: center; gap: 5px; }
+  .st-legend i { width: 10px; height: 10px; border-radius: 50%; display: inline-block; }
+
+  .st-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+  .st-table th {
+    text-align: left;
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+    color: var(--soil-mid);
+    padding: 6px 8px;
+    border-bottom: 1px solid #E2D5BC;
+  }
+  .st-table td { padding: 7px 8px; border-bottom: 1px solid #EDE4D2; }
+  .st-table tr:last-child td { border-bottom: none; }
+  .st-pill {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 11.5px;
+    font-weight: 600;
+  }
+  .st-pill.below { background: #E4EBE1; color: var(--sage); }
+  .st-pill.above { background: #F1E3D0; color: var(--clay); }
+  .st-del {
+    background: none;
+    border: none;
+    color: #B0A188;
+    cursor: pointer;
+    font-size: 13px;
+    padding: 2px 6px;
+  }
+  .st-del:hover { color: var(--clay); }
+  .st-empty { color: var(--soil-mid); font-size: 13.5px; padding: 10px 2px 4px; }
+  .st-note { color: var(--soil-mid); font-size: 12px; margin-top: 14px; line-height: 1.5; }
+</style>
+<script>
+(function() {
+  const root = document.getElementById('soil-tracker-root');
+  const THRESHOLD = 70;
+  const STREAK_TARGET = 3;
+
+  let entries = [];
+  let loaded = false;
+
+  function fmtDate(d) {
+    const dt = new Date(d + 'T00:00:00');
+    return dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+  }
+
+  async function loadEntries() {
+    try {
+      const res = await window.storage.list('soil:');
+      if (!res || !res.keys) { entries = []; return; }
+      const vals = await Promise.all(res.keys.map(async k => {
+        try {
+          const r = await window.storage.get(k, false);
+          return r ? JSON.parse(r.value) : null;
+        } catch (e) { return null; }
+      }));
+      entries = vals.filter(Boolean).sort((a, b) => a.date.localeCompare(b.date));
+    } catch (e) {
+      entries = [];
+    }
+  }
+
+  async function saveEntry(date, t5, t10) {
+    const key = 'soil:' + date;
+    const value = JSON.stringify({ date, t5, t10: (t10 === null ? null : t10) });
+    await window.storage.set(key, value, false);
+  }
+
+  async function deleteEntry(date) {
+    await window.storage.delete('soil:' + date, false);
+  }
+
+  function computeStreak() {
+    // longest current streak ending at the most recent entry, of t5 <= THRESHOLD
+    let streak = 0;
+    for (let i = entries.length - 1; i >= 0; i--) {
+      if (entries[i].t5 <= THRESHOLD) streak++;
+      else break;
+    }
+    return streak;
+  }
+
+  function renderStatus() {
+    if (entries.length === 0) {
+      return `<div class="st-status wait"><div class="st-status-dot"></div>
+        <div>Log a few readings from the OSU station to start tracking your streak toward the 70°F mark.</div></div>`;
+    }
+    const latest = entries[entries.length - 1];
+    const streak = computeStreak();
+    if (latest.t5 > THRESHOLD) {
+      return `<div class="st-status wait"><div class="st-status-dot"></div>
+        <div>Latest 5cm reading is <b>${latest.t5.toFixed(1)}°F</b> — still above 70°F. Not yet.</div></div>`;
+    }
+    if (streak >= STREAK_TARGET) {
+      return `<div class="st-status ready"><div class="st-status-dot"></div>
+        <div><b>Ready to apply.</b> 5cm soil temp has held at or below 70°F for ${streak} consecutive logged days.</div></div>`;
+    }
+    return `<div class="st-status close"><div class="st-status-dot"></div>
+      <div>Getting close — 5cm is at <b>${latest.t5.toFixed(1)}°F</b>, ${streak} consecutive day${streak === 1 ? '' : 's'} at or below 70°F (need ${STREAK_TARGET}).</div></div>`;
+  }
+
+  function renderChart() {
+    if (entries.length < 2) return '';
+    const w = 660, h = 160, padL = 34, padR = 10, padT = 14, padB = 22;
+    const temps5 = entries.map(e => e.t5);
+    const temps10 = entries.filter(e => e.t10 !== null && e.t10 !== undefined).map(e => e.t10);
+    const allTemps = temps5.concat(temps10, [THRESHOLD]);
+    const minT = Math.min(...allTemps) - 3;
+    const maxT = Math.max(...allTemps) + 3;
+    const x = i => padL + (i / (entries.length - 1)) * (w - padL - padR);
+    const y = t => padT + (1 - (t - minT) / (maxT - minT)) * (h - padT - padB);
+
+    const line5 = entries.map((e, i) => `${x(i)},${y(e.t5)}`).join(' ');
+    const has10 = entries.some(e => e.t10 !== null && e.t10 !== undefined);
+    const line10pts = entries.filter(e => e.t10 !== null && e.t10 !== undefined);
+    const line10 = line10pts.map((e) => {
+      const idx = entries.indexOf(e);
+      return `${x(idx)},${y(e.t10)}`;
+    }).join(' ');
+
+    const thresholdY = y(THRESHOLD);
+    const dots5 = entries.map((e, i) => `<circle cx="${x(i)}" cy="${y(e.t5)}" r="3" fill="${e.t5 <= THRESHOLD ? '#5F7A5A' : '#A8532E'}" />`).join('');
+    const xLabels = entries.map((e, i) => {
+      if (entries.length > 8 && i % Math.ceil(entries.length / 6) !== 0 && i !== entries.length - 1) return '';
+      return `<text x="${x(i)}" y="${h - 4}" font-size="10" fill="#4A3728" text-anchor="middle">${fmtDate(e.date)}</text>`;
+    }).join('');
+
+    return `<div class="st-chart-wrap">
+      <svg viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">
+        <line x1="${padL}" y1="${thresholdY}" x2="${w - padR}" y2="${thresholdY}" stroke="#C4872B" stroke-width="1" stroke-dasharray="4,3" />
+        <text x="${padL}" y="${thresholdY - 4}" font-size="10" fill="#C4872B">70°F target</text>
+        ${has10 ? `<polyline points="${line10}" fill="none" stroke="#B0A188" stroke-width="1.5" stroke-dasharray="2,2" />` : ''}
+        <polyline points="${line5}" fill="none" stroke="#4A3728" stroke-width="2" />
+        ${dots5}
+        ${xLabels}
+      </svg>
+      <div class="st-legend">
+        <span><i style="background:#4A3728"></i>5cm depth</span>
+        ${has10 ? '<span><i style="background:#B0A188"></i>10cm depth</span>' : ''}
+        <span><i style="background:#C4872B"></i>70°F threshold</span>
+      </div>
+    </div>`;
+  }
+
+  function renderTable() {
+    if (entries.length === 0) {
+      return `<div class="st-empty">No readings logged yet.</div>`;
+    }
+    const rows = entries.slice().reverse().map(e => `
+      <tr>
+        <td>${fmtDate(e.date)}</td>
+        <td>${e.t5.toFixed(1)}°F</td>
+        <td>${e.t10 !== null && e.t10 !== undefined ? e.t10.toFixed(1) + '°F' : '—'}</td>
+        <td><span class="st-pill ${e.t5 <= THRESHOLD ? 'below' : 'above'}">${e.t5 <= THRESHOLD ? 'at/below 70' : 'above 70'}</span></td>
+        <td><button class="st-del" data-date="${e.date}" title="Delete">✕</button></td>
+      </tr>`).join('');
+    return `<table class="st-table">
+      <thead><tr><th>Date</th><th>5cm</th><th>10cm</th><th>Status</th><th></th></tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
+  function todayStr() {
+    const d = new Date();
+    return d.toISOString().slice(0, 10);
+  }
+
+  function render() {
+    root.innerHTML = `
+      <div class="st-strata">
+        <div class="st-strata-label st-strata-title">Fall Pre-Emergent Tracker</div>
+        <div class="st-strata-label st-strata-sub">Columbus, OH — OSU CFAES station</div>
+        <div class="st-depth-mark d5">5 cm depth</div>
+        <div class="st-depth-mark d10">10 cm depth</div>
+      </div>
+      <div class="st-body">
+        ${renderStatus()}
+        <div class="st-form">
+          <div class="st-field">
+            <label>Date</label>
+            <input type="date" id="st-date" value="${todayStr()}" />
+          </div>
+          <div class="st-field">
+            <label>5cm (°F)</label>
+            <input type="number" step="0.1" id="st-t5" placeholder="e.g. 74.2" />
+          </div>
+          <div class="st-field">
+            <label>10cm (°F, optional)</label>
+            <input type="number" step="0.1" id="st-t10" placeholder="e.g. 76.5" />
+          </div>
+          <button class="st-add-btn" id="st-add">Add reading</button>
+          <button class="st-add-btn" id="st-import" style="background:#6B4E32;">Import OSU history (8/20\u20138/26)</button>
+        </div>
+        <div class="st-error" id="st-error" style="display:none;"></div>
+        ${renderChart()}
+        ${renderTable()}
+        <div class="st-note">Best source: OSU's daily data table (dailyinfo_B.asp) has a "Min Soil Temp 2\"" and "Min Soil Temp 4\"" column \u2014 that daily minimum is what to log here (roughly 5cm/10cm depth). Once 5cm holds at or below 70°F for ${STREAK_TARGET} consecutive logged days, you're in the application window. Data is stored locally to this conversation and only visible to you.</div>
+      </div>
+    `;
+
+    document.getElementById('st-add').addEventListener('click', onAdd);
+    const importBtn = document.getElementById('st-import');
+    if (importBtn) importBtn.addEventListener('click', onImport);
+    root.querySelectorAll('.st-del').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        await deleteEntry(btn.getAttribute('data-date'));
+        await loadEntries();
+        render();
+      });
+    });
+  }
+
+  async function onAdd() {
+    const dateEl = document.getElementById('st-date');
+    const t5El = document.getElementById('st-t5');
+    const t10El = document.getElementById('st-t10');
+    const errEl = document.getElementById('st-error');
+
+    const date = dateEl.value;
+    const t5 = parseFloat(t5El.value);
+    const t10raw = t10El.value;
+    const t10 = t10raw === '' ? null : parseFloat(t10raw);
+
+    if (!date || isNaN(t5)) {
+      errEl.textContent = 'Enter a date and a 5cm reading.';
+      errEl.style.display = 'block';
+      return;
+    }
+    if (t10raw !== '' && isNaN(t10)) {
+      errEl.textContent = 'The 10cm reading must be a number.';
+      errEl.style.display = 'block';
+      return;
+    }
+    errEl.style.display = 'none';
+
+    try {
+      await saveEntry(date, t5, t10);
+      await loadEntries();
+      render();
+    } catch (e) {
+      errEl.textContent = 'Could not save that reading — try again.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  const OSU_HISTORY = [
+    { date: '2026-08-20', t5: 73.5, t10: 74.2 },
+    { date: '2026-08-21', t5: 74.1, t10: 74.6 },
+    { date: '2026-08-22', t5: 75.2, t10: 75.6 },
+    { date: '2026-08-23', t5: 73.2, t10: 73.9 },
+    { date: '2026-08-24', t5: 70.9, t10: 72.0 },
+    { date: '2026-08-25', t5: 69.7, t10: 70.8 },
+    { date: '2026-08-26', t5: 70.6, t10: 71.6 }
+  ];
+
+  async function onImport() {
+    const errEl = document.getElementById('st-error');
+    try {
+      for (const e of OSU_HISTORY) {
+        await saveEntry(e.date, e.t5, e.t10);
+      }
+      await loadEntries();
+      render();
+    } catch (e) {
+      errEl.textContent = 'Import failed \u2014 try again.';
+      errEl.style.display = 'block';
+    }
+  }
+
+  (async function init() {
+    root.innerHTML = `<div style="padding:24px;color:#4A3728;font-family:-apple-system,sans-serif;">Loading…</div>`;
+    await loadEntries();
+    loaded = true;
+    render();
+  })();
+})();
+</script>

@@ -14,21 +14,21 @@ SPRING_HIGH = 55.0
 SPRING_GERMINATION = 60.0
 SPRING_STREAK_TARGET = 3
 
-st.set_page_config(
-    page_title="Fall Pre-Emergent Tracker", page_icon="🌱", layout="centered"
-)
+st.set_page_config(page_title="Fall Pre-Emergent Tracker", page_icon="🌱", layout="centered")
 
 
 def get_conn():
     conn = duckdb.connect(DB_PATH)
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS readings (
             reading_date DATE PRIMARY KEY,
             temp_5cm DOUBLE,
             temp_10cm DOUBLE,
             source VARCHAR
         )
-        """)
+        """
+    )
     return conn
 
 
@@ -103,10 +103,7 @@ st.title("🌱 Pre-Emergent Tracker")
 
 season = st.radio(
     "Tracking mode",
-    [
-        "Fall (post-emergent window closing, target ≤ 70°F)",
-        "Spring (crabgrass, target 50–55°F)",
-    ],
+    ["Fall (post-emergent window closing, target ≤ 70°F)", "Spring (crabgrass, target 50–55°F)"],
     horizontal=True,
 )
 is_spring = season.startswith("Spring")
@@ -117,9 +114,7 @@ if is_spring:
         "50–55°F spring crabgrass pre-emergent window (germination begins ~55–60°F)"
     )
 else:
-    st.caption(
-        "Columbus, OH — OSU CFAES station soil temps, tracked against the 70°F fall threshold"
-    )
+    st.caption("Columbus, OH — OSU CFAES station soil temps, tracked against the 70°F fall threshold")
 
 conn = get_conn()
 
@@ -131,13 +126,7 @@ with st.expander("Fetch from OSU automatically"):
         try:
             df_new = fetch_osu_range(start_d, end_d)
             for _, row in df_new.iterrows():
-                upsert_reading(
-                    conn,
-                    row["date"],
-                    row["temp_5cm"],
-                    row["temp_10cm"],
-                    source="osu_auto",
-                )
+                upsert_reading(conn, row["date"], row["temp_5cm"], row["temp_10cm"], source="osu_auto")
             st.success(f"Imported {len(df_new)} day(s) from OSU.")
         except Exception as e:
             st.error(f"Auto-fetch failed: {e}")
@@ -158,9 +147,7 @@ if st.button(fill_label, disabled=fill_disabled):
     try:
         df_new = fetch_osu_range(fill_start, date.today())
         for _, row in df_new.iterrows():
-            upsert_reading(
-                conn, row["date"], row["temp_5cm"], row["temp_10cm"], source="osu_auto"
-            )
+            upsert_reading(conn, row["date"], row["temp_5cm"], row["temp_10cm"], source="osu_auto")
         st.success(f"Filled {len(df_new)} day(s), through {date.today()}.")
         st.rerun()
     except Exception as e:
@@ -170,17 +157,8 @@ st.subheader("Log a reading")
 with st.form("manual_entry", clear_on_submit=True):
     c1, c2, c3 = st.columns(3)
     d = c1.date_input("Date", value=date.today())
-    t5 = c2.number_input(
-        "5cm (°F)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f"
-    )
-    t10 = c3.number_input(
-        "10cm (°F, optional)",
-        min_value=0.0,
-        max_value=120.0,
-        step=0.1,
-        format="%.1f",
-        value=0.0,
-    )
+    t5 = c2.number_input("5cm (°F)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f")
+    t10 = c3.number_input("10cm (°F, optional)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f", value=0.0)
     submitted = st.form_submit_button("Add reading")
     if submitted:
         upsert_reading(conn, d, t5, t10 if t10 > 0 else None, source="manual")
@@ -258,16 +236,13 @@ else:
     chart_df = df.set_index("reading_date")[["temp_5cm", "temp_10cm"]]
     st.line_chart(chart_df)
     if is_spring:
-        st.caption(
-            f"Target window: {SPRING_LOW:.0f}–{SPRING_HIGH:.0f}°F · germination begins ~{SPRING_GERMINATION:.0f}°F"
-        )
+        st.caption(f"Target window: {SPRING_LOW:.0f}–{SPRING_HIGH:.0f}°F · germination begins ~{SPRING_GERMINATION:.0f}°F")
     else:
         st.caption(f"Target threshold: ≤ {FALL_THRESHOLD:.0f}°F")
 
     st.subheader("History")
     display_df = df.sort_values("reading_date", ascending=False).copy()
     if is_spring:
-
         def spring_status(t):
             if t < SPRING_LOW:
                 return "below window"
@@ -276,7 +251,6 @@ else:
             if t <= SPRING_GERMINATION:
                 return "above window"
             return "germination likely"
-
         display_df["status"] = display_df["temp_5cm"].apply(spring_status)
     else:
         display_df["status"] = display_df["temp_5cm"].apply(

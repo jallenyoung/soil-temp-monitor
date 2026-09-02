@@ -1,51 +1,38 @@
-# Fall Pre-Emergent Soil Temp Tracker
+# Pre-Emergent Soil Temp Tracker
 
-A small local app (Streamlit + DuckDB) for tracking OSU CFAES soil temperature
-readings against the 70°F fall pre-emergent threshold.
+Three Streamlit + DuckDB apps for timing lawn pre-emergent applications
+by soil temperature trend rather than calendar date.
 
-## Setup
+**Start here if you're an AI agent picking this up: read `CONTEXT.md`
+first.** It has the full history of decisions, known issues, and design
+rationale so you don't have to re-derive them.
+
+## Apps
+
+| Folder | Covers | Data source |
+|---|---|---|
+| `columbus_oh/` | Columbus, OH area | Real OSU CFAES station (scraped) |
+| `erie_pa/` | Erie, PA area | Open-Meteo modeled estimate |
+| `any_city/` | Any city, worldwide | Open-Meteo modeled estimate + geocoding |
+
+Each folder is self-contained: its own `app.py`, `requirements.txt`, and
+`README.md` with setup/run instructions. Each keeps its own local DuckDB
+file, so running more than one doesn't cause conflicts.
+
+## Quick start (any app)
 
 ```bash
-cd soil_temp_app
+cd <folder>
 python -m venv venv
 source venv/bin/activate        # Windows: venv\Scripts\activate
 pip install -r requirements.txt
-```
-
-## Run
-
-```bash
 streamlit run app.py
 ```
 
-This opens the app in your browser at `http://localhost:8501`. Leave the
-terminal running while you use it; close it (Ctrl+C) when you're done.
+## Also included
 
-## How it works
-
-- **Fetch from OSU automatically**: pulls the daily minimum soil temp at
-  2" (~5cm) and 4" (~10cm) depth from OSU's Columbus station for a date
-  range and stores it in a local DuckDB file (`soil_temps.duckdb`, created
-  automatically next to `app.py`).
-- **Log a reading manually**: fallback/override if auto-fetch isn't
-  working, or if you want to log a reading OSU hasn't published yet.
-- The app tracks your **streak** of consecutive days at or below 70°F at
-  5cm and tells you once you've hit 3 in a row — the general application
-  window for fall pre-emergent.
-
-## If auto-fetch breaks
-
-OSU occasionally tweaks their page layout. If you see an error on fetch,
-open the URL directly in a browser to check the table still has "Min Soil
-Temp 2"" and "Min Soil Temp 4"" columns:
-
-```
-https://weather.cfaes.osu.edu/dailyinfo_B.asp?location=14&startdate=YYYY-MM-DD&enddate=YYYY-MM-DD
-```
-
-Manual entry will always work regardless.
-
-## Your data
-
-Everything lives in `soil_temps.duckdb` in this folder — nothing leaves
-your machine. Back that file up or delete it to reset.
+`browser_artifact_reference.html` — the original in-chat manual-entry
+tracker built before these Streamlit apps existed. Superseded, kept for
+reference only. It depends on a `window.storage` API specific to the
+Claude.ai artifact environment and will not function if opened as a
+plain local HTML file.

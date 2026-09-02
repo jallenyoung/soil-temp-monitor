@@ -19,7 +19,8 @@ st.set_page_config(page_title="Pre-Emergent Tracker", page_icon="🌱", layout="
 
 def get_conn():
     conn = duckdb.connect(DB_PATH)
-    conn.execute("""
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS readings (
             location_key VARCHAR,
             reading_date DATE,
@@ -28,13 +29,16 @@ def get_conn():
             source VARCHAR,
             PRIMARY KEY (location_key, reading_date)
         )
-        """)
-    conn.execute("""
+        """
+    )
+    conn.execute(
+        """
         CREATE TABLE IF NOT EXISTS settings (
             key VARCHAR PRIMARY KEY,
             value VARCHAR
         )
-        """)
+        """
+    )
     return conn
 
 
@@ -69,8 +73,7 @@ def upsert_reading(conn, location_key, d, t5, t10, source="manual"):
 
 def load_readings(conn, location_key):
     return conn.execute(
-        "SELECT * FROM readings WHERE location_key = ? ORDER BY reading_date",
-        [location_key],
+        "SELECT * FROM readings WHERE location_key = ? ORDER BY reading_date", [location_key]
     ).df()
 
 
@@ -83,8 +86,7 @@ def latest_reading_date(conn, location_key):
 
 def delete_reading(conn, location_key, d):
     conn.execute(
-        "DELETE FROM readings WHERE location_key = ? AND reading_date = ?",
-        [location_key, d],
+        "DELETE FROM readings WHERE location_key = ? AND reading_date = ?", [location_key, d]
     )
 
 
@@ -141,11 +143,7 @@ def fetch_openmeteo_range(start_d, end_d, lat, lon):
     )
     df["date"] = df["time"].dt.date
 
-    daily = (
-        df.groupby("date")
-        .agg(temp_5cm=("temp_5cm", "min"), temp_10cm=("temp_10cm", "min"))
-        .reset_index()
-    )
+    daily = df.groupby("date").agg(temp_5cm=("temp_5cm", "min"), temp_10cm=("temp_10cm", "min")).reset_index()
     daily = daily.dropna(subset=["temp_5cm"])
     return daily
 
@@ -170,16 +168,12 @@ conn = get_conn()
 
 # --- City selection ---
 default_query = get_setting(conn, "last_city_query") or DEFAULT_CITY_QUERY
-city_query = st.text_input(
-    'City (e.g. "Erie, PA" or "Columbus, OH")', value=default_query
-)
+city_query = st.text_input("City (e.g. \"Erie, PA\" or \"Columbus, OH\")", value=default_query)
 
 results = geocode_city(city_query)
 
 if not results:
-    st.warning(
-        "No matching cities found. Try a different spelling or add a state/country."
-    )
+    st.warning("No matching cities found. Try a different spelling or add a state/country.")
     st.stop()
 
 options = {format_result(r): r for r in results}
@@ -197,10 +191,7 @@ st.caption(
 
 season = st.radio(
     "Tracking mode",
-    [
-        "Fall (post-emergent window closing, target ≤ 70°F)",
-        "Spring (crabgrass, target 50–55°F)",
-    ],
+    ["Fall (post-emergent window closing, target ≤ 70°F)", "Spring (crabgrass, target 50–55°F)"],
     horizontal=True,
 )
 is_spring = season.startswith("Spring")
@@ -212,18 +203,9 @@ with st.expander("Fetch from Open-Meteo automatically"):
     end_d = c2.date_input("End date", value=date.today())
     if st.button("Fetch Open-Meteo data"):
         try:
-            df_new = fetch_openmeteo_range(
-                start_d, end_d, location["latitude"], location["longitude"]
-            )
+            df_new = fetch_openmeteo_range(start_d, end_d, location["latitude"], location["longitude"])
             for _, row in df_new.iterrows():
-                upsert_reading(
-                    conn,
-                    location_key,
-                    row["date"],
-                    row["temp_5cm"],
-                    row["temp_10cm"],
-                    source="openmeteo_auto",
-                )
+                upsert_reading(conn, location_key, row["date"], row["temp_5cm"], row["temp_10cm"], source="openmeteo_auto")
             st.success(f"Imported {len(df_new)} day(s) for {location['name']}.")
         except Exception as e:
             st.error(f"Auto-fetch failed: {e}")
@@ -242,18 +224,9 @@ else:
 fill_disabled = fill_start is None
 if st.button(fill_label, disabled=fill_disabled):
     try:
-        df_new = fetch_openmeteo_range(
-            fill_start, date.today(), location["latitude"], location["longitude"]
-        )
+        df_new = fetch_openmeteo_range(fill_start, date.today(), location["latitude"], location["longitude"])
         for _, row in df_new.iterrows():
-            upsert_reading(
-                conn,
-                location_key,
-                row["date"],
-                row["temp_5cm"],
-                row["temp_10cm"],
-                source="openmeteo_auto",
-            )
+            upsert_reading(conn, location_key, row["date"], row["temp_5cm"], row["temp_10cm"], source="openmeteo_auto")
         st.success(f"Filled {len(df_new)} day(s), through {date.today()}.")
         st.rerun()
     except Exception as e:
@@ -263,30 +236,17 @@ st.subheader("Log a reading")
 with st.form("manual_entry", clear_on_submit=True):
     c1, c2, c3 = st.columns(3)
     d = c1.date_input("Date", value=date.today())
-    t5 = c2.number_input(
-        "5cm-equivalent (°F)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f"
-    )
-    t10 = c3.number_input(
-        "10cm-equivalent (°F, optional)",
-        min_value=0.0,
-        max_value=120.0,
-        step=0.1,
-        format="%.1f",
-        value=0.0,
-    )
+    t5 = c2.number_input("5cm-equivalent (°F)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f")
+    t10 = c3.number_input("10cm-equivalent (°F, optional)", min_value=0.0, max_value=120.0, step=0.1, format="%.1f", value=0.0)
     submitted = st.form_submit_button("Add reading")
     if submitted:
-        upsert_reading(
-            conn, location_key, d, t5, t10 if t10 > 0 else None, source="manual"
-        )
+        upsert_reading(conn, location_key, d, t5, t10 if t10 > 0 else None, source="manual")
         st.success(f"Logged {d}.")
 
 df = load_readings(conn, location_key)
 
 if df.empty:
-    st.info(
-        f"No readings yet for {location['name']} — fetch from Open-Meteo or log one manually above."
-    )
+    st.info(f"No readings yet for {location['name']} — fetch from Open-Meteo or log one manually above.")
 else:
     df = df.sort_values("reading_date")
     latest = df.iloc[-1]
@@ -354,16 +314,13 @@ else:
     chart_df = df.set_index("reading_date")[["temp_5cm", "temp_10cm"]]
     st.line_chart(chart_df)
     if is_spring:
-        st.caption(
-            f"Target window: {SPRING_LOW:.0f}–{SPRING_HIGH:.0f}°F · germination begins ~{SPRING_GERMINATION:.0f}°F"
-        )
+        st.caption(f"Target window: {SPRING_LOW:.0f}–{SPRING_HIGH:.0f}°F · germination begins ~{SPRING_GERMINATION:.0f}°F")
     else:
         st.caption(f"Target threshold: ≤ {FALL_THRESHOLD:.0f}°F")
 
     st.subheader("History")
     display_df = df.sort_values("reading_date", ascending=False).copy()
     if is_spring:
-
         def spring_status(t):
             if t < SPRING_LOW:
                 return "below window"
@@ -372,7 +329,6 @@ else:
             if t <= SPRING_GERMINATION:
                 return "above window"
             return "germination likely"
-
         display_df["status"] = display_df["temp_5cm"].apply(spring_status)
     else:
         display_df["status"] = display_df["temp_5cm"].apply(

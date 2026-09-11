@@ -258,7 +258,7 @@ else:
         )
     st.dataframe(
         display_df[["reading_date", "temp_5cm", "temp_10cm", "status", "source"]],
-        use_container_width=True,
+        width='stretch',
         hide_index=True,
     )
 
